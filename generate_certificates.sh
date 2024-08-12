@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Variables
-NODES=("master1" "master2" "master3" "worker1" "worker2" "worker3" "bootstrap")
+NODES=("bootstrap" "master1" "master2" "master3" "worker1" "worker2" "worker3")
 MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 
 # 1. Crear la Estructura de Directorios
 echo "Creando estructura de directorios..."
-sudo mkdir -p /usr/share/nginx/certificates/{master1,master2,master3,worker1,worker2,worker3,bootstrap}/kubelet
+sudo mkdir -p /usr/share/nginx/certificates/{bootstrap,master1,master2,master3,worker1,worker2,worker3}/kubelet
 sudo mkdir -p /usr/share/nginx/certificates/shared/{ca,apiserver,etcd,sa,apiserver-etcd-client}
 
 # 2. Generar el Certificado de la CA (Certificados Compartidos)
@@ -14,12 +14,11 @@ echo "Generando certificado de la CA..."
 openssl genpkey -algorithm RSA -out /usr/share/nginx/certificates/shared/ca/ca.key -pkeyopt rsa_keygen_bits:2048
 openssl req -x509 -new -nodes -key /usr/share/nginx/certificates/shared/ca/ca.key -subj "/CN=Kubernetes-CA" -days 3650 -out /usr/share/nginx/certificates/shared/ca/ca.crt
 
-# 3. Generar Certificados Únicos para Cada Nodo
-echo "Generando certificados únicos para cada nodo..."
-
+# 3. Generar Certificados de Kubelet para Todos los Nodos
+echo "Generando certificados de Kubelet para todos los nodos..."
 for NODE in "${NODES[@]}"; do
     openssl genpkey -algorithm RSA -out /usr/share/nginx/certificates/${NODE}/kubelet/kubelet.key -pkeyopt rsa_keygen_bits:2048
-    openssl req -new -key /usr/share/nginx/certificates/${NODE}/kubelet/kubelet.key -subj "/CN=kubelet-${NODE}" -out /usr/share/nginx/certificates/${NODE}/kubelet/kubelet.csr
+    openssl req -new -key /usr/share/nginx/certificates/${NODE}/kubelet/kubelet.key -subj "/CN=system:node:${NODE}/O=system:nodes" -out /usr/share/nginx/certificates/${NODE}/kubelet/kubelet.csr
     openssl x509 -req -in /usr/share/nginx/certificates/${NODE}/kubelet/kubelet.csr -CA /usr/share/nginx/certificates/shared/ca/ca.crt -CAkey /usr/share/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /usr/share/nginx/certificates/${NODE}/kubelet/kubelet.crt -days 365
 done
 
@@ -48,7 +47,7 @@ openssl x509 -req -in /usr/share/nginx/certificates/shared/apiserver-etcd-client
 # 5. Configuración del archivo etcd-openssl.cnf para cada nodo master
 echo "Generando configuración de etcd-openssl.cnf para cada nodo master..."
 
-for i in {0..2}; do
+for i in {1..3}; do
   cat <<EOF | sudo tee /etc/kubernetes/pki/etcd-openssl-${NODES[i]}.cnf
 [req]
 distinguished_name = req_distinguished_name
@@ -65,7 +64,7 @@ subjectAltName = @alt_names
 
 [alt_names]
 IP.1 = 127.0.0.1
-IP.2 = ${MASTER_IPS[i]}  # IP del nodo ${NODES[i]}
+IP.2 = ${MASTER_IPS[i-1]}  # IP del nodo ${NODES[i]}
 
 EOF
 done
