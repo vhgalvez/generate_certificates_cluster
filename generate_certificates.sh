@@ -7,7 +7,7 @@ MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 # 1. Crear la Estructura de Directorios
 echo "Creando estructura de directorios..."
 sudo mkdir -p /usr/share/nginx/certificates/{bootstrap,master1,master2,master3,worker1,worker2,worker3}/kubelet
-sudo mkdir -p /usr/share/nginx/certificates/shared/{ca,apiserver,etcd,sa,apiserver-etcd-client}
+sudo mkdir -p /usr/share/nginx/certificates/shared/{ca,apiserver,etcd,sa,apiserver-etcd-client,apiserver-kubelet-client}
 
 # 2. Generar el Certificado de la CA (Certificados Compartidos)
 echo "Generando certificado de la CA..."
@@ -43,6 +43,11 @@ openssl x509 -req -in /usr/share/nginx/certificates/shared/etcd/etcd.csr -CA /us
 openssl genpkey -algorithm RSA -out /usr/share/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.key -pkeyopt rsa_keygen_bits:2048
 openssl req -new -key /usr/share/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.key -subj "/CN=apiserver-etcd-client" -out /usr/share/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.csr
 openssl x509 -req -in /usr/share/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.csr -CA /usr/share/nginx/certificates/shared/ca/ca.crt -CAkey /usr/share/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /usr/share/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.crt -days 365
+
+# API Server Kubelet Client Certificate
+openssl genpkey -algorithm RSA -out /usr/share/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.key -pkeyopt rsa_keygen_bits:2048
+openssl req -new -key /usr/share/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.key -subj "/CN=kube-apiserver-kubelet-client" -out /usr/share/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr
+openssl x509 -req -in /usr/share/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr -CA /usr/share/nginx/certificates/shared/ca/ca.crt -CAkey /usr/share/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /usr/share/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.crt -days 365
 
 # 5. Configuración del archivo etcd-openssl.cnf para cada nodo master
 echo "Generando configuración de etcd-openssl.cnf para cada nodo master..."
