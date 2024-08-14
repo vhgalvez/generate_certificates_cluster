@@ -8,11 +8,16 @@ MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 echo "Creando estructura de directorios..."
 sudo mkdir -p /usr/share/nginx/certificates/{bootstrap,master1,master2,master3,worker1,worker2,worker3}/kubelet
 sudo mkdir -p /usr/share/nginx/certificates/shared/{ca,apiserver,etcd,sa,apiserver-etcd-client,apiserver-kubelet-client}
+sudo mkdir -p /etc/kubernetes/pki
 
 # 2. Generar el Certificado de la CA (Certificados Compartidos)
 echo "Generando certificado de la CA..."
 openssl genpkey -algorithm RSA -out /usr/share/nginx/certificates/shared/ca/ca.key -pkeyopt rsa_keygen_bits:2048
 openssl req -x509 -new -nodes -key /usr/share/nginx/certificates/shared/ca/ca.key -subj "/CN=Kubernetes-CA" -days 3650 -out /usr/share/nginx/certificates/shared/ca/ca.crt
+
+# Copiar CA a /etc/kubernetes/pki
+sudo cp /usr/share/nginx/certificates/shared/ca/ca.crt /etc/kubernetes/pki/ca.crt
+sudo cp /usr/share/nginx/certificates/shared/ca/ca.key /etc/kubernetes/pki/ca.key
 
 # 3. Generar Certificados de Kubelet para Todos los Nodos
 echo "Generando certificados de Kubelet para todos los nodos..."
@@ -87,7 +92,12 @@ sudo openssl x509 -req -in /etc/kubernetes/pki/apiserver-kubelet-client.csr \
 
 # 7. Reiniciar el servicio kube-apiserver después de generar los certificados
 echo "Reiniciando kube-apiserver..."
-sudo systemctl daemon-reload
-sudo systemctl restart kube-apiserver
+if systemctl list-units --full -all | grep -q 'kube-apiserver.service'; then
+  sudo systemctl daemon-reload
+  sudo systemctl restart kube-apiserver
+  echo "kube-apiserver ha sido reiniciado."
+else
+  echo "kube-apiserver no se encuentra, por favor asegúrate de que está instalado y configurado correctamente."
+fi
 
 echo "Todos los certificados se han generado y el servicio kube-apiserver ha sido reiniciado."
