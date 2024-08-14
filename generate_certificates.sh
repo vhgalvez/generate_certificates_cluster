@@ -80,7 +80,10 @@ echo "Proceso completado."
 echo "Generando certificado apiserver-kubelet-client en /etc/kubernetes/pki..."
 sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/apiserver-kubelet-client.key -pkeyopt rsa_keygen_bits:2048
 sudo openssl req -new -key /etc/kubernetes/pki/apiserver-kubelet-client.key -subj "/CN=kube-apiserver-kubelet-client" -out /etc/kubernetes/pki/apiserver-kubelet-client.csr
-sudo openssl x509 -req -in /etc/kubernetes/pki/apiserver-kubelet-client.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out /etc/kubernetes/pki/apiserver-kubelet-client.crt -days 365
+sudo openssl x509 -req -in /etc/kubernetes/pki/apiserver-kubelet-client.csr \
+-CA /usr/share/nginx/certificates/shared/ca/ca.crt \
+-CAkey /usr/share/nginx/certificates/shared/ca/ca.key \
+-CAcreateserial -out /etc/kubernetes/pki/apiserver-kubelet-client.crt -days 365
 
 # 7. Reiniciar el servicio kube-apiserver después de generar los certificados
 echo "Reiniciando kube-apiserver..."
