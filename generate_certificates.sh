@@ -36,6 +36,7 @@ openssl req -new -key /opt/nginx/certificates/shared/apiserver/apiserver.key -su
 openssl x509 -req -in /opt/nginx/certificates/shared/apiserver/apiserver.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/apiserver/apiserver.crt -days 365
 
 # Service Account Key Pair
+echo "Generando el par de claves del Service Account..."
 openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/sa/sa.key -pkeyopt rsa_keygen_bits:2048
 openssl rsa -in /opt/nginx/certificates/shared/sa/sa.key -pubout -out /opt/nginx/certificates/shared/sa/sa.pub
 
@@ -89,5 +90,14 @@ sudo openssl x509 -req -in /etc/kubernetes/pki/apiserver-kubelet-client.csr \
 -CA /opt/nginx/certificates/shared/ca/ca.crt \
 -CAkey /opt/nginx/certificates/shared/ca/ca.key \
 -CAcreateserial -out /etc/kubernetes/pki/apiserver-kubelet-client.crt -days 365
+
+echo "Certificado apiserver-kubelet-client generado correctamente."
+
+# 7. Generar el par de claves del Service Account (sa.key, sa.pub) si no se generó antes
+echo "Generando el par de claves del Service Account..."
+sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/sa.key -pkeyopt rsa_keygen_bits:2048
+sudo openssl rsa -in /etc/kubernetes/pki/sa.key -pubout -out /etc/kubernetes/pki/sa.pub
+
+echo "Par de claves del Service Account generado correctamente."
 
 echo "Todos los certificados se han generado correctamente."
