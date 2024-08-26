@@ -4,26 +4,26 @@
 NODES=("bootstrap" "master1" "master2" "master3" "worker1" "worker2" "worker3")
 MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 
-# 1. Crear la Estructura de Directorios
-echo "Creando estructura de directorios..."
+# 1. Create Directory Structure
+echo "Creating directory structure..."
 sudo mkdir -p /opt/nginx/certificates/{bootstrap,master1,master2,master3,worker1,worker2,worker3}/kubelet
 sudo mkdir -p /opt/nginx/certificates/shared/{ca,apiserver,etcd,sa,apiserver-etcd-client,apiserver-kubelet-client,kube-scheduler}
 
-# 2. Generar el Certificado de la CA (Certificados Compartidos)
-echo "Generando certificado de la CA..."
+# 2. Generate CA Certificate (Shared Certificates)
+echo "Generating CA certificate..."
 sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/ca/ca.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl req -x509 -new -nodes -key /opt/nginx/certificates/shared/ca/ca.key -subj "/CN=Kubernetes-CA" -days 3650 -out /opt/nginx/certificates/shared/ca/ca.crt
+sudo openssl req -x509 -new -key /opt/nginx/certificates/shared/ca/ca.key -subj "/CN=Kubernetes-CA" -days 3650 -out /opt/nginx/certificates/shared/ca/ca.crt
 
-# 3. Generar Certificados de Kubelet para Todos los Nodos
-echo "Generando certificados de Kubelet para todos los nodos..."
+# 3. Generate Kubelet Certificates for All Nodes
+echo "Generating Kubelet certificates for all nodes..."
 for NODE in "${NODES[@]}"; do
     sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/${NODE}/kubelet/kubelet.key -pkeyopt rsa_keygen_bits:2048
     sudo openssl req -new -key /opt/nginx/certificates/${NODE}/kubelet/kubelet.key -subj "/CN=system:node:${NODE}/O=system:nodes" -out /opt/nginx/certificates/${NODE}/kubelet/kubelet.csr
     sudo openssl x509 -req -in /opt/nginx/certificates/${NODE}/kubelet/kubelet.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/${NODE}/kubelet/kubelet.crt -days 365
 done
 
-# 4. Generar Certificados Compartidos
-echo "Generando certificados compartidos..."
+# 4. Generate Shared Certificates
+echo "Generating shared certificates..."
 
 # API Server Certificate
 sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/apiserver/apiserver.key -pkeyopt rsa_keygen_bits:2048
@@ -31,7 +31,7 @@ sudo openssl req -new -key /opt/nginx/certificates/shared/apiserver/apiserver.ke
 sudo openssl x509 -req -in /opt/nginx/certificates/shared/apiserver/apiserver.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/apiserver/apiserver.crt -days 365
 
 # Service Account Key Pair
-echo "Generando el par de claves del Service Account..."
+echo "Generating Service Account key pair..."
 sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/sa/sa.key -pkeyopt rsa_keygen_bits:2048
 sudo openssl rsa -in /opt/nginx/certificates/shared/sa/sa.key -pubout -out /opt/nginx/certificates/shared/sa/sa.pub
 
@@ -50,11 +50,11 @@ sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/apiserve
 sudo openssl req -new -key /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.key -subj "/CN=kube-apiserver-kubelet-client" -out /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr
 sudo openssl x509 -req -in /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.crt -days 365
 
-# 5. Configuración del archivo etcd-openssl.cnf para cada nodo master
-echo "Generando configuración de etcd-openssl.cnf para cada nodo master..."
+# 5. Generate etcd-openssl.cnf for Each Master Node
+echo "Generating etcd-openssl.cnf for each master node..."
 
 for i in {1..3}; do
-  cat <<EOF | sudo tee /opt/nginx/certificates/shared/etcd-openssl-master${i}.cnf
+  cat <<EOF | sudo tee /opt/nginx/certificates/shared/etcd-openssl-${NODES[i]}.cnf
 [req]
 distinguished_name = req_distinguished_name
 req_extensions = v3_req
@@ -77,14 +77,14 @@ IP.4 = ${MASTER_IPS[2]}
 EOF
 done
 
-echo "Proceso completado."
+echo "Process completed."
 
-# 6. Generar el certificado para kube-scheduler
-echo "Generando certificado kube-scheduler..."
+# 6. Generate the Certificate for kube-scheduler
+echo "Generating kube-scheduler certificate..."
 sudo mkdir -p /opt/nginx/certificates/shared/kube-scheduler
 
 if [ ! -d "/opt/nginx/certificates/shared/kube-scheduler" ]; then
-  echo "Error: No se pudo crear el directorio para kube-scheduler"
+  echo "Error: Could not create directory for kube-scheduler"
   exit 1
 fi
 
@@ -97,8 +97,8 @@ if [ -f "/opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.key" ] && 
   sudo chmod 644 /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.crt
   sudo chown root:root /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.*
 else
-  echo "Error: No se encontraron los archivos del certificado kube-scheduler"
+  echo "Error: kube-scheduler certificate files not found"
   exit 1
 fi
 
-echo "Todos los certificados se han generado correctamente."
+echo "All certificates have been generated successfully."
