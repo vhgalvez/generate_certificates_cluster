@@ -70,7 +70,9 @@ subjectAltName = @alt_names
 
 [alt_names]
 IP.1 = 127.0.0.1
-IP.2 = ${MASTER_IPS[i-1]}  # IP del nodo ${NODES[i]}
+IP.2 = ${MASTER_IPS[0]}
+IP.3 = ${MASTER_IPS[1]}
+IP.4 = ${MASTER_IPS[2]}
 
 EOF
 done
