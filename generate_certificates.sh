@@ -79,6 +79,7 @@ echo "Proceso completado."
 
 # 6. Generar el certificado para kube-scheduler
 echo "Generando certificado kube-scheduler..."
+sudo mkdir -p /opt/nginx/certificates/shared/kube-scheduler
 sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.key -pkeyopt rsa_keygen_bits:2048
 sudo openssl req -new -key /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.key -subj "/CN=system:kube-scheduler" -out /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.csr
 sudo openssl x509 -req -in /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.crt -days 365
