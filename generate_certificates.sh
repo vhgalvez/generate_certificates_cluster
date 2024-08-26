@@ -7,7 +7,7 @@ MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 # 1. Crear la Estructura de Directorios
 echo "Creando estructura de directorios..."
 sudo mkdir -p /opt/nginx/certificates/{bootstrap,master1,master2,master3,worker1,worker2,worker3}/kubelet
-sudo mkdir -p /opt/nginx/certificates/shared/{ca,apiserver,etcd,sa,apiserver-etcd-client,apiserver-kubelet-client}
+sudo mkdir -p /opt/nginx/certificates/shared/{ca,apiserver,etcd,sa,apiserver-etcd-client,apiserver-kubelet-client,kube-scheduler}
 
 # 2. Generar el Certificado de la CA (Certificados Compartidos)
 echo "Generando certificado de la CA..."
@@ -84,6 +84,6 @@ sudo openssl req -new -key /opt/nginx/certificates/shared/kube-scheduler/kube-sc
 sudo openssl x509 -req -in /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.crt -days 365
 sudo chmod 600 /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.key
 sudo chmod 644 /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.crt
-sudo chown root:root /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.*
+sudo chown root:root /opt/nginx/certificates/shared/kube-scheduler.*
 
 echo "Todos los certificados se han generado correctamente."
