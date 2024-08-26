@@ -27,29 +27,29 @@ done
 echo "Generando certificados compartidos..."
 
 # API Server Certificate
-sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/apiserver/apiserver.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl req -new -key /opt/nginx/certificates/shared/apiserver/apiserver.key -subj "/CN=kube-apiserver" -out /opt/nginx/certificates/shared/apiserver/apiserver.csr
-sudo openssl x509 -req -in /opt/nginx/certificates/shared/apiserver/apiserver.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/apiserver/apiserver.crt -days 365
+sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/apiserver.key -pkeyopt rsa_keygen_bits:2048
+sudo openssl req -new -key /etc/kubernetes/pki/apiserver.key -subj "/CN=kube-apiserver" -out /etc/kubernetes/pki/apiserver.csr
+sudo openssl x509 -req -in /etc/kubernetes/pki/apiserver.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out /etc/kubernetes/pki/apiserver.crt -days 365
 
 # Service Account Key Pair
 echo "Generando el par de claves del Service Account..."
-sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/sa/sa.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl rsa -in /opt/nginx/certificates/shared/sa/sa.key -pubout -out /opt/nginx/certificates/shared/sa/sa.pub
+sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/sa.key -pkeyopt rsa_keygen_bits:2048
+sudo openssl rsa -in /etc/kubernetes/pki/sa.key -pubout -out /etc/kubernetes/pki/sa.pub
 
 # Etcd Server Certificate
-sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/etcd/etcd.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl req -new -key /opt/nginx/certificates/shared/etcd/etcd.key -subj "/CN=etcd" -out /opt/nginx/certificates/shared/etcd/etcd.csr
-sudo openssl x509 -req -in /opt/nginx/certificates/shared/etcd/etcd.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/etcd/etcd.crt -days 365
+sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/etcd/etcd.key -pkeyopt rsa_keygen_bits:2048
+sudo openssl req -new -key /etc/kubernetes/pki/etcd/etcd.key -subj "/CN=etcd" -out /etc/kubernetes/pki/etcd/etcd.csr
+sudo openssl x509 -req -in /etc/kubernetes/pki/etcd/etcd.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out /etc/kubernetes/pki/etcd/etcd.crt -days 365
 
 # API Server Etcd Client Certificates
-sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl req -new -key /opt/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.key -subj "/CN=apiserver-etcd-client" -out /opt/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.csr
-sudo openssl x509 -req -in /opt/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/apiserver-etcd-client/apiserver-etcd-client.crt -days 365
+sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/apiserver-etcd-client.key -pkeyopt rsa_keygen_bits:2048
+sudo openssl req -new -key /etc/kubernetes/pki/apiserver-etcd-client.key -subj "/CN=apiserver-etcd-client" -out /etc/kubernetes/pki/apiserver-etcd-client.csr
+sudo openssl x509 -req -in /etc/kubernetes/pki/apiserver-etcd-client.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out /etc/kubernetes/pki/apiserver-etcd-client.crt -days 365
 
 # API Server Kubelet Client Certificate
-sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl req -new -key /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.key -subj "/CN=kube-apiserver-kubelet-client" -out /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr
-sudo openssl x509 -req -in /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.crt -days 365
+sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/apiserver-kubelet-client.key -pkeyopt rsa_keygen_bits:2048
+sudo openssl req -new -key /etc/kubernetes/pki/apiserver-kubelet-client.key -subj "/CN=kube-apiserver-kubelet-client" -out /etc/kubernetes/pki/apiserver-kubelet-client.csr
+sudo openssl x509 -req -in /etc/kubernetes/pki/apiserver-kubelet-client.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out /etc/kubernetes/pki/apiserver-kubelet-client.crt -days 365
 
 # 5. Configuración del archivo etcd-openssl.cnf para cada nodo master
 echo "Generando configuración de etcd-openssl.cnf para cada nodo master..."
@@ -78,22 +78,13 @@ done
 
 echo "Proceso completado."
 
-# 6. Generar el certificado para apiserver-kubelet-client en /opt/nginx/certificates/shared/apiserver-kubelet-client si no se generó antes
-echo "Generando certificado apiserver-kubelet-client en /opt/nginx/certificates/shared/apiserver-kubelet-client..."
-sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl req -new -key /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.key -subj "/CN=kube-apiserver-kubelet-client" -out /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr
-sudo openssl x509 -req -in /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr \
--CA /opt/nginx/certificates/shared/ca/ca.crt \
--CAkey /opt/nginx/certificates/shared/ca/ca.key \
--CAcreateserial -out /opt/nginx/certificates/shared/apiserver-kubelet-client/apiserver-kubelet-client.crt -days 365
-
-echo "Certificado apiserver-kubelet-client generado correctamente."
-
-# 7. Generar el par de claves del Service Account (sa.key, sa.pub) en /opt/nginx/certificates/shared/sa si no se generó antes
-echo "Generando el par de claves del Service Account..."
-sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/sa.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl rsa -in /etc/kubernetes/pki/sa.key -pubout -out /etc/kubernetes/pki/sa.pub
-
-echo "Par de claves del Service Account generado correctamente."
+# 6. Generar el certificado para kube-scheduler
+echo "Generando certificado kube-scheduler..."
+sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/kube-scheduler.key -pkeyopt rsa_keygen_bits:2048
+sudo openssl req -new -key /etc/kubernetes/pki/kube-scheduler.key -subj "/CN=system:kube-scheduler" -out /etc/kubernetes/pki/kube-scheduler.csr
+sudo openssl x509 -req -in /etc/kubernetes/pki/kube-scheduler.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out /etc/kubernetes/pki/kube-scheduler.crt -days 365
+sudo chmod 600 /etc/kubernetes/pki/kube-scheduler.key
+sudo chmod 644 /etc/kubernetes/pki/kube-scheduler.crt
+sudo chown root:root /etc/kubernetes/pki/kube-scheduler.*
 
 echo "Todos los certificados se han generado correctamente."
