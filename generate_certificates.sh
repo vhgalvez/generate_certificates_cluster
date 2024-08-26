@@ -80,11 +80,23 @@ echo "Proceso completado."
 # 6. Generar el certificado para kube-scheduler
 echo "Generando certificado kube-scheduler..."
 sudo mkdir -p /opt/nginx/certificates/shared/kube-scheduler
+
+if [ ! -d "/opt/nginx/certificates/shared/kube-scheduler" ]; then
+  echo "Error: No se pudo crear el directorio para kube-scheduler"
+  exit 1
+fi
+
 sudo openssl genpkey -algorithm RSA -out /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.key -pkeyopt rsa_keygen_bits:2048
 sudo openssl req -new -key /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.key -subj "/CN=system:kube-scheduler" -out /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.csr
 sudo openssl x509 -req -in /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.csr -CA /opt/nginx/certificates/shared/ca/ca.crt -CAkey /opt/nginx/certificates/shared/ca/ca.key -CAcreateserial -out /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.crt -days 365
-sudo chmod 600 /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.key
-sudo chmod 644 /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.crt
-sudo chown root:root /opt/nginx/certificates/shared/kube-scheduler.*
+
+if [ -f "/opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.key" ] && [ -f "/opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.crt" ]; then
+  sudo chmod 600 /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.key
+  sudo chmod 644 /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.crt
+  sudo chown root:root /opt/nginx/certificates/shared/kube-scheduler/kube-scheduler.*
+else
+  echo "Error: No se encontraron los archivos del certificado kube-scheduler"
+  exit 1
+fi
 
 echo "Todos los certificados se han generado correctamente."
