@@ -54,7 +54,7 @@ sudo openssl x509 -req -in /opt/nginx/certificates/shared/apiserver-kubelet-clie
 echo "Generando configuración de etcd-openssl.cnf para cada nodo master..."
 
 for i in {1..3}; do
-  cat <<EOF | sudo tee /opt/nginx/certificates/shared/etcd-openssl-${NODES[i]}.cnf
+  cat <<EOF | sudo tee /opt/nginx/certificates/shared/etcd-openssl-master${i}.cnf
 [req]
 distinguished_name = req_distinguished_name
 req_extensions = v3_req
