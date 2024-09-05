@@ -13,11 +13,13 @@ sudo mkdir -p ${BASE_DIR}/{shared,kubernetes-admin,kubelet,kube-proxy,apiserver,
 
 # 1. Generar el certificado de la CA (Certificado compartido)
 echo "Generating CA certificate..."
+sudo mkdir -p ${BASE_DIR}/shared/ca
 sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/ca/ca.key -pkeyopt rsa_keygen_bits:2048
 sudo openssl req -x509 -new -key ${BASE_DIR}/shared/ca/ca.key -subj "/CN=Kubernetes-CA" -days 3650 -out ${BASE_DIR}/shared/ca/ca.crt
 
 # 2. Generar el certificado para kubernetes-admin
 echo "Generating kubernetes-admin certificate..."
+sudo mkdir -p ${BASE_DIR}/shared/kubernetes-admin
 cat <<EOF | sudo tee ${BASE_DIR}/shared/kubernetes-admin/admin-openssl.cnf
 [ req ]
 req_extensions = v3_req
@@ -40,6 +42,7 @@ sudo openssl x509 -req -in ${BASE_DIR}/shared/kubernetes-admin/admin.csr -CA ${B
 # 3. Generar certificados Kubelet para todos los nodos
 echo "Generating Kubelet certificates for all nodes..."
 for NODE in "${NODES[@]}"; do
+  sudo mkdir -p ${BASE_DIR}/${NODE}/kubelet
   cat <<EOF | sudo tee /tmp/kubelet-${NODE}-openssl.cnf
 [ req ]
 default_bits       = 2048
@@ -67,6 +70,7 @@ done
 
 # 4. Generar el certificado del API Server
 echo "Generating API Server certificate..."
+sudo mkdir -p ${BASE_DIR}/shared/apiserver
 cat <<EOF | sudo tee ${BASE_DIR}/shared/apiserver/apiserver-openssl.cnf
 [ req ]
 default_bits       = 2048
@@ -98,60 +102,9 @@ sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/apiserver/apiserver.
 sudo openssl req -new -key ${BASE_DIR}/shared/apiserver/apiserver.key -out ${BASE_DIR}/shared/apiserver/apiserver.csr -config ${BASE_DIR}/shared/apiserver/apiserver-openssl.cnf
 sudo openssl x509 -req -in ${BASE_DIR}/shared/apiserver/apiserver.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/apiserver/apiserver.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/shared/apiserver/apiserver-openssl.cnf
 
-# 5. Generar el par de llaves para la Service Account
-echo "Generating Service Account key pair..."
-sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/sa/sa.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl rsa -in ${BASE_DIR}/shared/sa/sa.key -pubout -out ${BASE_DIR}/shared/sa/sa.pub
-
-# 6. Generar certificados del servidor Etcd
-echo "Generating Etcd certificates..."
-for i in {0..2}; do
-  cat <<EOF | sudo tee ${BASE_DIR}/shared/etcd/etcd-openssl-${NODES[i]}.cnf
-[ req ]
-distinguished_name = req_distinguished_name
-req_extensions = v3_req
-prompt = no
-
-[ req_distinguished_name ]
-CN = etcd
-
-[v3_req]
-keyUsage = keyEncipherment, dataEncipherment
-extendedKeyUsage = serverAuth, clientAuth
-subjectAltName = @alt_names
-
-[ alt_names ]
-IP.1 = 127.0.0.1
-IP.2 = 10.17.4.21
-IP.3 = 10.17.4.22
-IP.4 = 10.17.4.23
-EOF
-
-  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/etcd/etcd-${NODES[i]}.key -pkeyopt rsa_keygen_bits:2048
-  sudo openssl req -new -key ${BASE_DIR}/shared/etcd/etcd-${NODES[i]}.key -config ${BASE_DIR}/shared/etcd/etcd-openssl-${NODES[i]}.cnf -out ${BASE_DIR}/shared/etcd/etcd-${NODES[i]}.csr
-  sudo openssl x509 -req -in ${BASE_DIR}/shared/etcd/etcd-${NODES[i]}.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/etcd/etcd-${NODES[i]}.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/shared/etcd/etcd-openssl-${NODES[i]}.cnf
-done
-
-# 7. Generar certificados de cliente para el API Server de Etcd
-echo "Generating API Server Etcd client certificate..."
-sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/apiserver-etcd-client/apiserver-etcd-client.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl req -new -key ${BASE_DIR}/shared/apiserver-etcd-client/apiserver-etcd-client.key -subj "/CN=apiserver-etcd-client" -out ${BASE_DIR}/shared/apiserver-etcd-client/apiserver-etcd-client.csr
-sudo openssl x509 -req -in ${BASE_DIR}/shared/apiserver-etcd-client/apiserver-etcd-client.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/apiserver-etcd-client/apiserver-etcd-client.crt -days 365
-
-# 8. Generar el certificado del cliente Kubelet del API Server
-echo "Generating API Server Kubelet client certificate..."
-sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/apiserver-kubelet-client/apiserver-kubelet-client.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl req -new -key ${BASE_DIR}/shared/apiserver-kubelet-client/apiserver-kubelet-client.key -subj "/CN=kube-apiserver-kubelet-client" -out ${BASE_DIR}/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr
-sudo openssl x509 -req -in ${BASE_DIR}/shared/apiserver-kubelet-client/apiserver-kubelet-client.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/apiserver-kubelet-client/apiserver-kubelet-client.crt -days 365
-
-# 9. Generar el certificado para kube-scheduler
-echo "Generating kube-scheduler certificate..."
-sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.key -pkeyopt rsa_keygen_bits:2048
-sudo openssl req -new -key ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.key -subj "/CN=system:kube-scheduler" -out ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.csr
-sudo openssl x509 -req -in ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.crt -days 365
-
-# 10. Generar el certificado para Kube-proxy
+# 5. Generar el certificado para Kube-proxy
 echo "Generating Kube-proxy certificate..."
+sudo mkdir -p ${BASE_DIR}/shared/kube-proxy
 cat <<EOF | sudo tee ${BASE_DIR}/shared/kube-proxy/kube-proxy-openssl.cnf
 [ req ]
 default_bits       = 2048
