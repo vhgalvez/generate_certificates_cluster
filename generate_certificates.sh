@@ -9,7 +9,7 @@ MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 
 # Crear la estructura de directorios
 echo "Creating directory structure..."
-sudo mkdir -p ${BASE_DIR}/{shared,kubernetes-admin,kubelet,kube-proxy,apiserver,etcd,apiserver-etcd-client,apiserver-kubelet-client,kube-scheduler}
+sudo mkdir -p ${BASE_DIR}/{shared,kubernetes-admin,kubelet,kube-proxy,apiserver,etcd,apiserver-etcd-client,apiserver-kubelet-client,kube-scheduler,kube-controller-manager}
 
 # 1. Generar el certificado de la CA (Certificado compartido)
 echo "Generating CA certificate..."
@@ -122,5 +122,51 @@ EOF
 sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/kube-proxy/kube-proxy.key -pkeyopt rsa_keygen_bits:2048
 sudo openssl req -new -key ${BASE_DIR}/shared/kube-proxy/kube-proxy.key -out ${BASE_DIR}/shared/kube-proxy/kube-proxy.csr -config ${BASE_DIR}/shared/kube-proxy/kube-proxy-openssl.cnf
 sudo openssl x509 -req -in ${BASE_DIR}/shared/kube-proxy/kube-proxy.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/kube-proxy/kube-proxy.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/shared/kube-proxy/kube-proxy-openssl.cnf
+
+# 6. Generar el certificado para kube-controller-manager
+echo "Generating kube-controller-manager certificate..."
+sudo mkdir -p ${BASE_DIR}/shared/kube-controller-manager
+cat <<EOF | sudo tee ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager-openssl.cnf
+[ req ]
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
+distinguished_name = dn
+req_extensions     = v3_req
+
+[ dn ]
+CN = system:kube-controller-manager
+
+[ v3_req ]
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth
+EOF
+
+sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.key -pkeyopt rsa_keygen_bits:2048
+sudo openssl req -new -key ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.key -out ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.csr -config ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager-openssl.cnf
+sudo openssl x509 -req -in ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager-openssl.cnf
+
+# 7. Generar el certificado para kube-scheduler
+echo "Generating kube-scheduler certificate..."
+sudo mkdir -p ${BASE_DIR}/shared/kube-scheduler
+cat <<EOF | sudo tee ${BASE_DIR}/shared/kube-scheduler/kube-scheduler-openssl.cnf
+[ req ]
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
+distinguished_name = dn
+req_extensions     = v3_req
+
+[ dn ]
+CN = system:kube-scheduler
+
+[ v3_req ]
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth
+EOF
+
+sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.key -pkeyopt rsa_keygen_bits:2048
+sudo openssl req -new -key ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.key -out ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.csr -config ${BASE_DIR}/shared/kube-scheduler/kube-scheduler-openssl.cnf
+sudo openssl x509 -req -in ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/shared/kube-scheduler/kube-scheduler-openssl.cnf
 
 echo "All certificates have been generated successfully."
