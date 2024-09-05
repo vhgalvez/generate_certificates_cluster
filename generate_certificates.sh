@@ -146,6 +146,10 @@ sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/kube-controller-mana
 sudo openssl req -new -key ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.key -out ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.csr -config ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager-openssl.cnf
 sudo openssl x509 -req -in ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager-openssl.cnf
 
+# Asegurar los permisos correctos para los archivos kube-controller-manager
+sudo chown root:root ${BASE_DIR}/shared/kube-controller-manager/*
+sudo chmod 600 ${BASE_DIR}/shared/kube-controller-manager/kube-controller-manager.key
+
 # 7. Generar el certificado para kube-scheduler
 echo "Generating kube-scheduler certificate..."
 sudo mkdir -p ${BASE_DIR}/shared/kube-scheduler
@@ -168,5 +172,9 @@ EOF
 sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.key -pkeyopt rsa_keygen_bits:2048
 sudo openssl req -new -key ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.key -out ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.csr -config ${BASE_DIR}/shared/kube-scheduler/kube-scheduler-openssl.cnf
 sudo openssl x509 -req -in ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.csr -CA ${BASE_DIR}/shared/ca/ca.crt -CAkey ${BASE_DIR}/shared/ca/ca.key -CAcreateserial -out ${BASE_DIR}/shared/kube-scheduler/kube-scheduler.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/shared/kube-scheduler/kube-scheduler-openssl.cnf
+
+# Reiniciar el servicio del kube-controller-manager para aplicar los cambios
+echo "Reiniciando kube-controller-manager..."
+sudo systemctl restart kube-controller-manager
 
 echo "All certificates have been generated successfully."
