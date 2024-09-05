@@ -60,7 +60,7 @@ subjectAltName = @alt_names
 
 [ alt_names ]
 DNS.1 = ${NODE}
-IP.1 = ${MASTER_IPS[0]}
+IP.1 = 10.17.4.21
 EOF
 
   sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/${NODE}/kubelet/kubelet.key -pkeyopt rsa_keygen_bits:2048
@@ -90,8 +90,6 @@ subjectAltName = @alt_names
 [ alt_names ]
 DNS.1 = kube-apiserver
 DNS.2 = kube-apiserver.kube-system
-DNS.3 = master1
-DNS.4 = master1.cefaslocalserver.com
 IP.1 = 127.0.0.1
 IP.2 = 10.17.4.21
 IP.3 = 10.17.4.22
