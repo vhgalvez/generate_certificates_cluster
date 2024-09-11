@@ -125,7 +125,13 @@ EOF
   fi
 }
 
-# (Continuar con la misma lógica para las funciones faltantes)
+# 5. Generate etcd certificates
+generate_etcd_certificates() {
+  echo "Generating etcd certificates..."
+  # Define your etcd certificate generation logic here
+}
+
+# Define other functions (e.g., for apiserver-etcd-client, sa keys, etc.)
 
 # Ejecutar todas las funciones en orden
 generate_ca_certificate
@@ -133,11 +139,7 @@ generate_admin_certificate
 generate_kubelet_certificates
 generate_apiserver_certificate
 generate_etcd_certificates
-generate_apiserver_etcd_client_certificate
-generate_sa_keys
-generate_kube_controller_manager_certificates
-generate_kube_scheduler_certificates
-generate_kube_proxy_certificates
+# Add missing functions here
 
 # Eliminar archivos temporales
 rm -f /tmp/kubelet-*.cnf
