@@ -19,7 +19,7 @@ sudo mkdir -p ${BASE_DIR}/{shared,sa,kubelet,apiserver,etcd,apiserver-etcd-clien
 
 # Function to remove existing certificates
 remove_existing_certificates() {
-  echo "Removing existing certificates if they exist..."
+  echo "Removing existing certificates if they exist..."   
   sudo rm -f ${BASE_DIR}/shared/ca.crt ${BASE_DIR}/shared/admin.crt ${BASE_DIR}/kubelet/*.crt ${BASE_DIR}/apiserver/apiserver.crt ${BASE_DIR}/etcd/etcd.crt
 }
 
