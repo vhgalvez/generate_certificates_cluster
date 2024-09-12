@@ -12,6 +12,7 @@ set -e  # Stop the script on error
 # Variables
 NODES=("master1" "master2" "master3" "worker1" "worker2" "worker3")
 MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
+ETCD_NODE="10.17.4.23"  # Assuming etcd runs on this IP, modify as needed
 
 # Create the directory structure
 echo "Creating directory structure..."
@@ -19,18 +20,18 @@ sudo mkdir -p ${BASE_DIR}/{shared,sa,kubelet,apiserver,etcd,apiserver-etcd-clien
 
 # Function to remove existing certificates
 remove_existing_certificates() {
-  echo "Removing existing certificates if they exist..."   
-  sudo rm -f ${BASE_DIR}/shared/ca.crt ${BASE_DIR}/shared/admin.crt ${BASE_DIR}/kubelet/*.crt ${BASE_DIR}/apiserver/apiserver.crt ${BASE_DIR}/etcd/etcd.crt
+  echo "Removing existing certificates if they exist..."
+  sudo rm -f ${BASE_DIR}/shared/ca.crt ${BASE_DIR}/shared/admin.crt ${BASE_DIR}/kubelet/*.crt ${BASE_DIR}/apiserver/apiserver.crt ${BASE_DIR}/etcd/etcd.crt ${BASE_DIR}/apiserver-etcd-client/*.crt
 }
 
-# 1. Generate CA certificate
+# 1. Generate CA certificate (shared)
 generate_ca_certificate() {
   echo "Generating CA certificate..."
   sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/ca.key -pkeyopt rsa_keygen_bits:2048
   sudo openssl req -x509 -new -key ${BASE_DIR}/shared/ca.key -subj "/CN=Kubernetes-CA" -days 3650 -out ${BASE_DIR}/shared/ca.crt
 }
 
-# 2. Generate Kubernetes Admin certificate
+# 2. Generate Kubernetes Admin certificate (shared)
 generate_admin_certificate() {
   echo "Generating kubernetes-admin certificate..."
   cat <<EOF | sudo tee ${BASE_DIR}/shared/admin-openssl.cnf
@@ -53,7 +54,7 @@ EOF
   sudo openssl x509 -req -in ${BASE_DIR}/shared/admin.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/shared/admin.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/shared/admin-openssl.cnf
 }
 
-# 3. Generate Kubelet certificates for all nodes
+# 3. Generate Kubelet certificates for all nodes (individual)
 generate_kubelet_certificates() {
   for NODE in "${NODES[@]}"; do
     echo "Generating Kubelet certificate for ${NODE}..."
@@ -83,7 +84,7 @@ EOF
   done
 }
 
-# 4. Generate API Server certificate
+# 4. Generate API Server certificate (shared)
 generate_apiserver_certificate() {
   echo "Generating API Server certificate..."
   cat <<EOF | sudo tee ${BASE_DIR}/apiserver/apiserver-openssl.cnf
@@ -115,10 +116,34 @@ EOF
   sudo openssl x509 -req -in ${BASE_DIR}/apiserver/apiserver.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/apiserver/apiserver.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/apiserver/apiserver-openssl.cnf
 }
 
-# 5. Generate etcd certificates
+# 5. Generate etcd certificates (individual)
 generate_etcd_certificates() {
   echo "Generating etcd certificates..."
-  # Define your etcd certificate generation logic here
+  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/etcd/etcd.key -pkeyopt rsa_keygen_bits:2048
+  sudo openssl req -new -key ${BASE_DIR}/etcd/etcd.key -subj "/CN=etcd" -out ${BASE_DIR}/etcd/etcd.csr
+  sudo openssl x509 -req -in ${BASE_DIR}/etcd/etcd.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/etcd/etcd.crt -days 365
+}
+
+# 6. Generate apiserver-etcd-client certificates (shared)
+generate_apiserver_etcd_client_certificates() {
+  echo "Generating apiserver-etcd-client certificates..."
+  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.key -pkeyopt rsa_keygen_bits:2048
+  sudo openssl req -new -key ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.key -subj "/CN=apiserver-etcd-client" -out ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.csr
+  sudo openssl x509 -req -in ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.crt -days 365
+}
+
+# 7. Generate kube-scheduler and kube-controller-manager certificates (individual)
+generate_scheduler_and_controller_certificates() {
+  echo "Generating kube-scheduler and kube-controller-manager certificates..."
+  # kube-scheduler
+  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/kube-scheduler/kube-scheduler.key -pkeyopt rsa_keygen_bits:2048
+  sudo openssl req -new -key ${BASE_DIR}/kube-scheduler/kube-scheduler.key -subj "/CN=kube-scheduler" -out ${BASE_DIR}/kube-scheduler/kube-scheduler.csr
+  sudo openssl x509 -req -in ${BASE_DIR}/kube-scheduler/kube-scheduler.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/kube-scheduler/kube-scheduler.crt -days 365
+
+  # kube-controller-manager
+  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/kube-controller-manager/kube-controller-manager.key -pkeyopt rsa_keygen_bits:2048
+  sudo openssl req -new -key ${BASE_DIR}/kube-controller-manager/kube-controller-manager.key -subj "/CN=kube-controller-manager" -out ${BASE_DIR}/kube-controller-manager/kube-controller-manager.csr
+  sudo openssl x509 -req -in ${BASE_DIR}/kube-controller-manager/kube-controller-manager.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/kube-controller-manager/kube-controller-manager.crt -days 365
 }
 
 # Remove existing certificates, then regenerate them
@@ -128,6 +153,8 @@ generate_admin_certificate
 generate_kubelet_certificates
 generate_apiserver_certificate
 generate_etcd_certificates
+generate_apiserver_etcd_client_certificates
+generate_scheduler_and_controller_certificates
 
 # Clean up temporary files
 rm -f /tmp/kubelet-*.cnf
