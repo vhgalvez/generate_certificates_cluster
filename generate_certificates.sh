@@ -160,3 +160,4 @@ generate_scheduler_and_controller_certificates
 rm -f /tmp/kubelet-*.cnf
 
 echo "All certificates have been regenerated successfully."
+
