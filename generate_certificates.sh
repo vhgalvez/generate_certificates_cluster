@@ -27,123 +27,233 @@ remove_existing_certificates() {
 # 1. Generate CA certificate (shared)
 generate_ca_certificate() {
   echo "Generating CA certificate..."
-  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/ca.key -pkeyopt rsa_keygen_bits:2048
-  sudo openssl req -x509 -new -key ${BASE_DIR}/shared/ca.key -subj "/CN=Kubernetes-CA" -days 3650 -out ${BASE_DIR}/shared/ca.crt
+  cat > ${BASE_DIR}/shared/ca-csr.json <<EOF
+{
+  "CN": "Kubernetes-CA",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "OU": "CA",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert -initca ${BASE_DIR}/shared/ca-csr.json | cfssljson -bare ${BASE_DIR}/shared/ca
 }
 
 # 2. Generate Kubernetes Admin certificate (shared)
 generate_admin_certificate() {
   echo "Generating kubernetes-admin certificate..."
-  cat <<EOF | sudo tee ${BASE_DIR}/shared/admin-openssl.cnf
-[ req ]
-req_extensions = v3_req
-distinguished_name = req_distinguished_name
-prompt = no
-
-[ req_distinguished_name ]
-CN = kubernetes-admin
-O = system:masters
-
-[ v3_req ]
-keyUsage = keyEncipherment, dataEncipherment
-extendedKeyUsage = clientAuth
+  cat > ${BASE_DIR}/shared/admin-csr.json <<EOF
+{
+  "CN": "kubernetes-admin",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "system:masters",
+      "OU": "Kubernetes",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
 EOF
 
-  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/shared/admin.key -pkeyopt rsa_keygen_bits:2048
-  sudo openssl req -new -key ${BASE_DIR}/shared/admin.key -out ${BASE_DIR}/shared/admin.csr -config ${BASE_DIR}/shared/admin-openssl.cnf
-  sudo openssl x509 -req -in ${BASE_DIR}/shared/admin.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/shared/admin.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/shared/admin-openssl.cnf
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/shared/admin-csr.json | cfssljson -bare ${BASE_DIR}/shared/admin
 }
 
 # 3. Generate Kubelet certificates for all nodes (individual)
 generate_kubelet_certificates() {
   for NODE in "${NODES[@]}"; do
     echo "Generating Kubelet certificate for ${NODE}..."
-    cat <<EOF | sudo tee /tmp/kubelet-${NODE}-openssl.cnf
-[ req ]
-default_bits       = 2048
-prompt             = no
-default_md         = sha256
-req_extensions     = req_ext
-distinguished_name = dn
-
-[ dn ]
-CN = system:node:${NODE}
-O = system:nodes
-
-[ req_ext ]
-subjectAltName = @alt_names
-
-[ alt_names ]
-DNS.1 = ${NODE}
-IP.1 = ${MASTER_IPS[0]}
+    cat > ${BASE_DIR}/kubelet/kubelet-${NODE}-csr.json <<EOF
+{
+  "CN": "system:node:${NODE}",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "system:nodes",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
 EOF
 
-    sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/kubelet/${NODE}.key -pkeyopt rsa_keygen_bits:2048
-    sudo openssl req -new -key ${BASE_DIR}/kubelet/${NODE}.key -out ${BASE_DIR}/kubelet/${NODE}.csr -config /tmp/kubelet-${NODE}-openssl.cnf
-    sudo openssl x509 -req -in ${BASE_DIR}/kubelet/${NODE}.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/kubelet/${NODE}.crt -days 365 -extensions req_ext -extfile /tmp/kubelet-${NODE}-openssl.cnf
+    cfssl gencert \
+      -ca=${BASE_DIR}/shared/ca.pem \
+      -ca-key=${BASE_DIR}/shared/ca-key.pem \
+      -config=${BASE_DIR}/shared/ca-config.json \
+      -hostname=${NODE},${MASTER_IPS[0]} \
+      -profile=kubernetes \
+      ${BASE_DIR}/kubelet/kubelet-${NODE}-csr.json | cfssljson -bare ${BASE_DIR}/kubelet/${NODE}
   done
 }
 
 # 4. Generate API Server certificate (shared)
 generate_apiserver_certificate() {
   echo "Generating API Server certificate..."
-  cat <<EOF | sudo tee ${BASE_DIR}/apiserver/apiserver-openssl.cnf
-[ req ]
-default_bits       = 2048
-prompt             = no
-default_md         = sha256
-distinguished_name = dn
-req_extensions     = v3_req
-
-[ dn ]
-CN = kube-apiserver
-
-[ v3_req ]
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage = serverAuth, clientAuth
-subjectAltName = @alt_names
-
-[ alt_names ]
-DNS.1 = kube-apiserver
-IP.1 = 127.0.0.1
-IP.2 = ${MASTER_IPS[0]}
-IP.3 = ${MASTER_IPS[1]}
-IP.4 = ${MASTER_IPS[2]}
+  cat > ${BASE_DIR}/apiserver/apiserver-csr.json <<EOF
+{
+  "CN": "kube-apiserver",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
 EOF
 
-  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/apiserver/apiserver.key -pkeyopt rsa_keygen_bits:2048
-  sudo openssl req -new -key ${BASE_DIR}/apiserver/apiserver.key -out ${BASE_DIR}/apiserver/apiserver.csr -config ${BASE_DIR}/apiserver/apiserver-openssl.cnf
-  sudo openssl x509 -req -in ${BASE_DIR}/apiserver/apiserver.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/apiserver/apiserver.crt -days 365 -extensions v3_req -extfile ${BASE_DIR}/apiserver/apiserver-openssl.cnf
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -hostname=127.0.0.1,${MASTER_IPS[0]},${MASTER_IPS[1]},${MASTER_IPS[2]} \
+    -profile=kubernetes \
+    ${BASE_DIR}/apiserver/apiserver-csr.json | cfssljson -bare ${BASE_DIR}/apiserver/apiserver
 }
 
 # 5. Generate etcd certificates (individual)
 generate_etcd_certificates() {
   echo "Generating etcd certificates..."
-  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/etcd/etcd.key -pkeyopt rsa_keygen_bits:2048
-  sudo openssl req -new -key ${BASE_DIR}/etcd/etcd.key -subj "/CN=etcd" -out ${BASE_DIR}/etcd/etcd.csr
-  sudo openssl x509 -req -in ${BASE_DIR}/etcd/etcd.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/etcd/etcd.crt -days 365
+  cat > ${BASE_DIR}/etcd/etcd-csr.json <<EOF
+{
+  "CN": "etcd",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -hostname=127.0.0.1,${ETCD_NODE} \
+    -profile=kubernetes \
+    ${BASE_DIR}/etcd/etcd-csr.json | cfssljson -bare ${BASE_DIR}/etcd/etcd
 }
 
 # 6. Generate apiserver-etcd-client certificates (shared)
 generate_apiserver_etcd_client_certificates() {
   echo "Generating apiserver-etcd-client certificates..."
-  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.key -pkeyopt rsa_keygen_bits:2048
-  sudo openssl req -new -key ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.key -subj "/CN=apiserver-etcd-client" -out ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.csr
-  sudo openssl x509 -req -in ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client.crt -days 365
+  cat > ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client-csr.json <<EOF
+{
+  "CN": "apiserver-etcd-client",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client-csr.json | cfssljson -bare ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client
 }
 
 # 7. Generate kube-scheduler and kube-controller-manager certificates (individual)
 generate_scheduler_and_controller_certificates() {
   echo "Generating kube-scheduler and kube-controller-manager certificates..."
   # kube-scheduler
-  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/kube-scheduler/kube-scheduler.key -pkeyopt rsa_keygen_bits:2048
-  sudo openssl req -new -key ${BASE_DIR}/kube-scheduler/kube-scheduler.key -subj "/CN=kube-scheduler" -out ${BASE_DIR}/kube-scheduler/kube-scheduler.csr
-  sudo openssl x509 -req -in ${BASE_DIR}/kube-scheduler/kube-scheduler.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/kube-scheduler/kube-scheduler.crt -days 365
+  cat > ${BASE_DIR}/kube-scheduler/kube-scheduler-csr.json <<EOF
+{
+  "CN": "kube-scheduler",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/kube-scheduler/kube-scheduler-csr.json | cfssljson -bare ${BASE_DIR}/kube-scheduler/kube-scheduler
 
   # kube-controller-manager
-  sudo openssl genpkey -algorithm RSA -out ${BASE_DIR}/kube-controller-manager/kube-controller-manager.key -pkeyopt rsa_keygen_bits:2048
-  sudo openssl req -new -key ${BASE_DIR}/kube-controller-manager/kube-controller-manager.key -subj "/CN=kube-controller-manager" -out ${BASE_DIR}/kube-controller-manager/kube-controller-manager.csr
-  sudo openssl x509 -req -in ${BASE_DIR}/kube-controller-manager/kube-controller-manager.csr -CA ${BASE_DIR}/shared/ca.crt -CAkey ${BASE_DIR}/shared/ca.key -CAcreateserial -out ${BASE_DIR}/kube-controller-manager/kube-controller-manager.crt -days 365
+  cat > ${BASE_DIR}/kube-controller-manager/kube-controller-manager-csr.json <<EOF
+{
+  "CN": "kube-controller-manager",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/kube-controller-manager/kube-controller-manager-csr.json | cfssljson -bare ${BASE_DIR}/kube-controller-manager/kube-controller-manager
 }
 
 # Remove existing certificates, then regenerate them
@@ -156,8 +266,4 @@ generate_etcd_certificates
 generate_apiserver_etcd_client_certificates
 generate_scheduler_and_controller_certificates
 
-# Clean up temporary files
-rm -f /tmp/kubelet-*.cnf
-
 echo "All certificates have been regenerated successfully."
-
