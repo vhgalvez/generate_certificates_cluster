@@ -79,6 +79,50 @@ The following certificates are generated:
 * etcd Certificates: For etcd communication.
 * apiserver-etcd-client Certificates: For the API server to communicate securely with etcd.
 
+
+
+
+/home/core/nginx-docker/certificates/
+│
+├── shared/                     # Certificados compartidos (CA, admin)
+│   ├── ca.pem
+│   ├── ca-key.pem
+│   ├── admin.pem
+│   └── admin-key.pem
+│
+├── apiserver/                  # Certificados del servidor API
+│   ├── apiserver.pem
+│   └── apiserver-key.pem
+│
+├── apiserver-etcd-client/       # Certificados del cliente apiserver-etcd
+│   ├── apiserver-etcd-client.pem
+│   └── apiserver-etcd-client-key.pem
+│
+├── etcd/                       # Certificados para etcd
+│   ├── etcd.pem
+│   └── etcd-key.pem
+│
+├── kubelet/                    # Certificados para los nodos kubelet (worker y master)
+│   ├── kubelet-master1.pem
+│   ├── kubelet-master2.pem
+│   ├── kubelet-master3.pem
+│   ├── kubelet-worker1.pem
+│   ├── kubelet-worker2.pem
+│   ├── kubelet-worker3.pem
+│   └── [clave de cada uno]
+│
+├── kube-proxy/                 # Certificados para Kube Proxy
+│   ├── kube-proxy.pem
+│   └── kube-proxy-key.pem
+│
+├── kube-scheduler/             # Certificados para el planificador (kube-scheduler)
+│   ├── kube-scheduler.pem
+│   └── kube-scheduler-key.pem
+│
+└── kube-controller-manager/    # Certificados para el administrador del controlador (kube-controller-manager)
+    ├── kube-controller-manager.pem
+    └── kube-controller-manager-key.pem
+
 ## Customization
 
 You can adjust the following variables in the script as needed:
@@ -95,4 +139,3 @@ This project is licensed under the MIT License. See the LICENSE file for more de
 ## Contributing
 
 Feel free to fork the project, make changes, and create a pull request. Contributions are welcome!
-
