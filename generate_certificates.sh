@@ -195,10 +195,40 @@ EOF
       -ca=${BASE_DIR}/shared/ca.pem \
       -ca-key=${BASE_DIR}/shared/ca-key.pem \
       -config=${BASE_DIR}/shared/ca-config.json \
-      -hostname=${NODE},$(eval echo \$"${NODE^^}_IP") \
+      -hostname=${NODE},${BOOTSTRAP_NODE} \
       -profile=kubernetes \
       ${BASE_DIR}/etcd/etcd-${NODE}-csr.json | cfssljson -bare ${BASE_DIR}/etcd/etcd-${NODE}
   done
+}
+
+# 7. Generar certificados de sa.key y sa.pub (para los tokens del ServiceAccount)
+generate_service_account_certificates() {
+  echo "Generando certificados para ServiceAccount (sa)..."
+  cat > ${BASE_DIR}/sa/sa-csr.json <<EOF
+{
+  "CN": "service-accounts",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "OU": "ServiceAccounts",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/sa/sa-csr.json | cfssljson -bare ${BASE_DIR}/sa/sa
 }
 
 # Llamar a todas las funciones
@@ -209,5 +239,6 @@ generate_admin_certificate
 generate_kubelet_certificates
 generate_apiserver_certificate
 generate_etcd_certificates
+generate_service_account_certificates
 
 echo "Todos los certificados han sido generados exitosamente."
