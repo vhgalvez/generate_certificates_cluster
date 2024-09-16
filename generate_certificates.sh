@@ -13,7 +13,7 @@ set -e  # Detener el script si ocurre algún error
 NODES=("master1" "master2" "master3" "worker1" "worker2" "worker3")
 MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 WORKER_IPS=("10.17.4.24" "10.17.4.25" "10.17.4.26")
-ETCD_NODE="10.17.4.23"  # Dirección IP de etcd
+ETCD_NODES=("10.17.4.21" "10.17.4.22" "10.17.4.23")  # Todos los nodos etcd
 BOOTSTRAP_NODE="10.17.4.27"
 
 # Crear la estructura de directorios
@@ -23,7 +23,7 @@ sudo mkdir -p ${BASE_DIR}/{shared,sa,kubelet,apiserver,etcd,apiserver-etcd-clien
 # Función para eliminar certificados existentes
 remove_existing_certificates() {
   echo "Eliminando certificados existentes..."
-  sudo rm -f ${BASE_DIR}/shared/ca.crt ${BASE_DIR}/shared/admin.crt ${BASE_DIR}/kubelet/*.crt ${BASE_DIR}/apiserver/*.crt ${BASE_DIR}/etcd/*.crt ${BASE_DIR}/apiserver-etcd-client/*.crt
+  sudo rm -f ${BASE_DIR}/shared/*.crt ${BASE_DIR}/kubelet/*.crt ${BASE_DIR}/apiserver/*.crt ${BASE_DIR}/etcd/*.crt ${BASE_DIR}/apiserver-etcd-client/*.crt
 }
 
 # 1. Generar el archivo de configuración de la CA (ca-config.json)
@@ -59,7 +59,7 @@ generate_ca_certificate() {
   "CN": "Kubernetes-CA",
   "key": {
     "algo": "rsa",
-    "size": 2048
+    "size": 4096
   },
   "names": [
     {
@@ -84,7 +84,7 @@ generate_admin_certificate() {
   "CN": "kubernetes-admin",
   "key": {
     "algo": "rsa",
-    "size": 2048
+    "size": 4096
   },
   "names": [
     {
@@ -115,7 +115,7 @@ generate_kubelet_certificates() {
   "CN": "system:node:${NODE}",
   "key": {
     "algo": "rsa",
-    "size": 2048
+    "size": 4096
   },
   "names": [
     {
@@ -140,13 +140,13 @@ EOF
 
 # 5. Generar certificados del servidor API
 generate_apiserver_certificate() {
-  echo "Generando certificado de servidor API..."
+  echo "Generando certificado del servidor API..."
   cat > ${BASE_DIR}/apiserver/apiserver-csr.json <<EOF
 {
   "CN": "kube-apiserver",
   "key": {
     "algo": "rsa",
-    "size": 2048
+    "size": 4096
   },
   "names": [
     {
@@ -168,6 +168,39 @@ EOF
     ${BASE_DIR}/apiserver/apiserver-csr.json | cfssljson -bare ${BASE_DIR}/apiserver/apiserver
 }
 
+# 6. Generar certificados de ETCD
+generate_etcd_certificates() {
+  for NODE in "${ETCD_NODES[@]}"; do
+    echo "Generando certificados de ETCD para ${NODE}..."
+    cat > ${BASE_DIR}/etcd/etcd-${NODE}-csr.json <<EOF
+{
+  "CN": "etcd",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "OU": "ETCD",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+    cfssl gencert \
+      -ca=${BASE_DIR}/shared/ca.pem \
+      -ca-key=${BASE_DIR}/shared/ca-key.pem \
+      -config=${BASE_DIR}/shared/ca-config.json \
+      -hostname=${NODE},$(eval echo \$"${NODE^^}_IP") \
+      -profile=kubernetes \
+      ${BASE_DIR}/etcd/etcd-${NODE}-csr.json | cfssljson -bare ${BASE_DIR}/etcd/etcd-${NODE}
+  done
+}
+
 # Llamar a todas las funciones
 remove_existing_certificates
 generate_ca_config
@@ -175,5 +208,6 @@ generate_ca_certificate
 generate_admin_certificate
 generate_kubelet_certificates
 generate_apiserver_certificate
+generate_etcd_certificates
 
 echo "Todos los certificados han sido generados exitosamente."
