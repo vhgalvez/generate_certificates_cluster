@@ -26,7 +26,32 @@ remove_existing_certificates() {
   sudo rm -f ${BASE_DIR}/shared/ca.crt ${BASE_DIR}/shared/admin.crt ${BASE_DIR}/kubelet/*.crt ${BASE_DIR}/apiserver/*.crt ${BASE_DIR}/etcd/*.crt ${BASE_DIR}/apiserver-etcd-client/*.crt
 }
 
-# 1. Generar certificado CA (Autoridad Certificadora)
+# 1. Generar el archivo de configuración de la CA (ca-config.json)
+generate_ca_config() {
+  echo "Generando archivo de configuración de CA..."
+  cat > ${BASE_DIR}/shared/ca-config.json <<EOF
+{
+  "signing": {
+    "default": {
+      "expiry": "8760h"
+    },
+    "profiles": {
+      "kubernetes": {
+        "expiry": "8760h",
+        "usages": [
+          "signing",
+          "key encipherment",
+          "server auth",
+          "client auth"
+        ]
+      }
+    }
+  }
+}
+EOF
+}
+
+# 2. Generar certificado CA (Autoridad Certificadora)
 generate_ca_certificate() {
   echo "Generando certificado CA..."
   cat > ${BASE_DIR}/shared/ca-csr.json <<EOF
@@ -51,7 +76,7 @@ EOF
   cfssl gencert -initca ${BASE_DIR}/shared/ca-csr.json | cfssljson -bare ${BASE_DIR}/shared/ca
 }
 
-# 2. Generar certificado de administrador de Kubernetes
+# 3. Generar certificado de administrador de Kubernetes
 generate_admin_certificate() {
   echo "Generando certificado de administrador de Kubernetes..."
   cat > ${BASE_DIR}/shared/admin-csr.json <<EOF
@@ -81,7 +106,7 @@ EOF
     ${BASE_DIR}/shared/admin-csr.json | cfssljson -bare ${BASE_DIR}/shared/admin
 }
 
-# 3. Generar certificados de Kubelet para todos los nodos
+# 4. Generar certificados de Kubelet para todos los nodos
 generate_kubelet_certificates() {
   for NODE in "${NODES[@]}"; do
     echo "Generando certificado de Kubelet para ${NODE}..."
@@ -113,7 +138,7 @@ EOF
   done
 }
 
-# 4. Generar certificados del servidor API
+# 5. Generar certificados del servidor API
 generate_apiserver_certificate() {
   echo "Generando certificado de servidor API..."
   cat > ${BASE_DIR}/apiserver/apiserver-csr.json <<EOF
@@ -143,10 +168,9 @@ EOF
     ${BASE_DIR}/apiserver/apiserver-csr.json | cfssljson -bare ${BASE_DIR}/apiserver/apiserver
 }
 
-# Repetir con otras funciones para los certificados de etcd, apiserver-etcd-client, kube-scheduler, kube-controller-manager, y kube-proxy
-
 # Llamar a todas las funciones
 remove_existing_certificates
+generate_ca_config
 generate_ca_certificate
 generate_admin_certificate
 generate_kubelet_certificates
