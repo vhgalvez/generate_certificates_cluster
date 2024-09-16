@@ -231,6 +231,10 @@ EOF
     ${BASE_DIR}/sa/sa-csr.json | cfssljson -bare ${BASE_DIR}/sa/sa
 }
 
+# Set read permissions for the certificate files
+sudo chmod -R 755 /home/core/nginx-docker/certificates
+sudo chown -R core:core /home/core/nginx-docker/certificates
+
 # Llamar a todas las funciones
 remove_existing_certificates
 generate_ca_config
