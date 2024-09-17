@@ -13,7 +13,7 @@ set -e  # Detener el script si ocurre algún error
 NODES=("master1" "master2" "master3" "worker1" "worker2" "worker3")
 MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 WORKER_IPS=("10.17.4.24" "10.17.4.25" "10.17.4.26")
-ETCD_NODES=("10.17.4.21" "10.17.4.22" "10.17.4.23")  # Todos los nodos etcd
+ETCD_NODES=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 BOOTSTRAP_NODE="10.17.4.27"
 
 # Crear la estructura de directorios
@@ -108,7 +108,9 @@ EOF
 
 # 4. Generar certificados de Kubelet para todos los nodos
 generate_kubelet_certificates() {
-  for NODE in "${NODES[@]}"; do
+  for i in "${!NODES[@]}"; do
+    NODE="${NODES[$i]}"
+    NODE_IP="${MASTER_IPS[$i]:-${WORKER_IPS[$i]}}"
     echo "Generando certificado de Kubelet para ${NODE}..."
     cat > ${BASE_DIR}/kubelet/kubelet-${NODE}-csr.json <<EOF
 {
@@ -132,7 +134,7 @@ EOF
       -ca=${BASE_DIR}/shared/ca.pem \
       -ca-key=${BASE_DIR}/shared/ca-key.pem \
       -config=${BASE_DIR}/shared/ca-config.json \
-      -hostname=${NODE},$(eval echo \$"${NODE^^}_IP") \
+      -hostname=${NODE},${NODE_IP} \
       -profile=kubernetes \
       ${BASE_DIR}/kubelet/kubelet-${NODE}-csr.json | cfssljson -bare ${BASE_DIR}/kubelet/${NODE}
   done
@@ -348,9 +350,12 @@ EOF
     ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client-csr.json | cfssljson -bare ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client
 }
 
-# Set read permissions for the certificate files
-sudo chmod -R 755 /home/core/nginx-docker/certificates
-sudo chown -R core:core /home/core/nginx-docker/certificates
+# Ajustar permisos de los archivos
+sudo chmod -R 755 ${BASE_DIR}
+sudo chown -R core:core ${BASE_DIR}
+sudo find ${BASE_DIR}/ -name "*.pem" -exec chmod 644 {} \;
+sudo find ${BASE_DIR}/ -name "*-key.pem" -exec chmod 600 {} \;
+sudo chown -R root:root ${BASE_DIR}
 
 # Llamar a todas las funciones
 remove_existing_certificates
