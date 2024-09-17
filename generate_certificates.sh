@@ -318,6 +318,36 @@ EOF
     ${BASE_DIR}/sa/sa-csr.json | cfssljson -bare ${BASE_DIR}/sa/sa
 }
 
+# 11. Generar certificados para apiserver-etcd-client
+generate_apiserver_etcd_client_certificate() {
+  echo "Generando certificado apiserver-etcd-client..."
+  cat > ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client-csr.json <<EOF
+{
+  "CN": "apiserver-etcd-client",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "OU": "apiserver-etcd-client",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client-csr.json | cfssljson -bare ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client
+}
+
 # Set read permissions for the certificate files
 sudo chmod -R 755 /home/core/nginx-docker/certificates
 sudo chown -R core:core /home/core/nginx-docker/certificates
@@ -334,5 +364,6 @@ generate_kube_controller_manager_certificate
 generate_kube_scheduler_certificate
 generate_kube_proxy_certificate
 generate_service_account_certificates
+generate_apiserver_etcd_client_certificate
 
 echo "Todos los certificados han sido generados exitosamente."
