@@ -138,7 +138,7 @@ EOF
   done
 }
 
-# 5. Generar certificados del servidor API
+# 5. Generar certificados del servidor API (kube-apiserver)
 generate_apiserver_certificate() {
   echo "Generando certificado del servidor API..."
   cat > ${BASE_DIR}/apiserver/apiserver-csr.json <<EOF
@@ -201,7 +201,94 @@ EOF
   done
 }
 
-# 7. Generar certificados de sa.key y sa.pub (para los tokens del ServiceAccount)
+# 7. Generar certificados de kube-controller-manager
+generate_kube_controller_manager_certificate() {
+  echo "Generando certificado para kube-controller-manager..."
+  cat > ${BASE_DIR}/kube-controller-manager/kube-controller-manager-csr.json <<EOF
+{
+  "CN": "system:kube-controller-manager",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "system:kube-controller-manager",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/kube-controller-manager/kube-controller-manager-csr.json | cfssljson -bare ${BASE_DIR}/kube-controller-manager/kube-controller-manager
+}
+
+# 8. Generar certificados de kube-scheduler
+generate_kube_scheduler_certificate() {
+  echo "Generando certificado para kube-scheduler..."
+  cat > ${BASE_DIR}/kube-scheduler/kube-scheduler-csr.json <<EOF
+{
+  "CN": "system:kube-scheduler",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "system:kube-scheduler",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/kube-scheduler/kube-scheduler-csr.json | cfssljson -bare ${BASE_DIR}/kube-scheduler/kube-scheduler
+}
+
+# 9. Generar certificados de kube-proxy
+generate_kube_proxy_certificate() {
+  echo "Generando certificado para kube-proxy..."
+  cat > ${BASE_DIR}/kube-proxy/kube-proxy-csr.json <<EOF
+{
+  "CN": "system:kube-proxy",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "system:kube-proxy",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/kube-proxy/kube-proxy-csr.json | cfssljson -bare ${BASE_DIR}/kube-proxy/kube-proxy
+}
+
+# 10. Generar certificados de sa.key y sa.pub (para los tokens del ServiceAccount)
 generate_service_account_certificates() {
   echo "Generando certificados para ServiceAccount (sa)..."
   cat > ${BASE_DIR}/sa/sa-csr.json <<EOF
@@ -243,6 +330,9 @@ generate_admin_certificate
 generate_kubelet_certificates
 generate_apiserver_certificate
 generate_etcd_certificates
+generate_kube_controller_manager_certificate
+generate_kube_scheduler_certificate
+generate_kube_proxy_certificate
 generate_service_account_certificates
 
 echo "Todos los certificados han sido generados exitosamente."
