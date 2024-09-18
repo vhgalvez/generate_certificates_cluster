@@ -411,18 +411,6 @@ EOF
 }
 
 
-# Ajustar permisos de los archivos
-sudo chmod -R 755 ${BASE_DIR}
-sudo chown -R core:core ${BASE_DIR}
-sudo find ${BASE_DIR}/ -name "*.pem" -exec chmod 644 {} \;
-sudo find ${BASE_DIR}/ -name "*-key.pem" -exec chmod 600 {} \;
-sudo chown -R root:root ${BASE_DIR}
-
-sudo chmod 755 /home/core/nginx-docker/certificates
-sudo chmod 755 /home/core/nginx-docker/certificates/etcd
-sudo chmod 644 /home/core/nginx-docker/certificates/etcd/*.pem
-sudo chown core:core /home/core/nginx-docker/certificates/etcd/*.pem
-
 # Llamar a todas las funciones
 remove_existing_certificates
 generate_ca_config
@@ -441,3 +429,18 @@ generate_kubelet_bootstrap_certificate
 
 
 echo "Todos los certificados han sido generados exitosamente."
+
+
+# Ajustar permisos de los archivos
+sudo chmod -R 755 ${BASE_DIR}
+sudo chown -R core:core ${BASE_DIR}
+sudo find ${BASE_DIR}/ -name "*.pem" -exec chmod 644 {} \;
+sudo find ${BASE_DIR}/ -name "*-key.pem" -exec chmod 600 {} \;
+sudo chown -R root:root ${BASE_DIR}
+
+sudo chmod 755 /home/core/nginx-docker/certificates
+sudo chmod 755 /home/core/nginx-docker/certificates/etcd
+sudo chmod 644 /home/core/nginx-docker/certificates/etcd/*.pem
+sudo chown core:core /home/core/nginx-docker/certificates/etcd/*.pem
+
+echo "Permisos ajustados correctamente."
