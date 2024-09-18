@@ -380,6 +380,40 @@ EOF
 }
 
 
+
+# Generar certificado bootstrap de kubelet
+generate_kubelet_bootstrap_certificate() {
+    echo "Generando certificado bootstrap de kubelet..."
+    cat > ${BASE_DIR}/kubelet/kubelet-bootstrap-csr.json <<EOF
+{
+  "CN": "system:bootstrap",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "system:bootstrappers",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+
+    cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/kubelet/kubelet-bootstrap-csr.json | cfssljson -bare ${BASE_DIR}/kubelet/kubelet-bootstrap
+}
+
+
+
+
+
 # Ajustar permisos de los archivos
 sudo chmod -R 755 ${BASE_DIR}
 sudo chown -R core:core ${BASE_DIR}
