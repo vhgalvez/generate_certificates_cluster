@@ -381,7 +381,7 @@ EOF
 
 
 
-# Generar certificado bootstrap de kubelet
+# 13. Generar certificado bootstrap de kubelet
 generate_kubelet_bootstrap_certificate() {
     echo "Generando certificado bootstrap de kubelet..."
     cat > ${BASE_DIR}/kubelet/kubelet-bootstrap-csr.json <<EOF
@@ -401,7 +401,7 @@ generate_kubelet_bootstrap_certificate() {
   ]
 }
 EOF
-
+    
     cfssl gencert \
     -ca=${BASE_DIR}/shared/ca.pem \
     -ca-key=${BASE_DIR}/shared/ca-key.pem \
@@ -409,9 +409,6 @@ EOF
     -profile=kubernetes \
     ${BASE_DIR}/kubelet/kubelet-bootstrap-csr.json | cfssljson -bare ${BASE_DIR}/kubelet/kubelet-bootstrap
 }
-
-
-
 
 
 # Ajustar permisos de los archivos
@@ -435,5 +432,7 @@ generate_kube_proxy_certificate
 generate_service_account_certificates
 generate_apiserver_etcd_client_certificate
 generate_apiserver_kubelet_client_certificate
+generate_kubelet_bootstrap_certificate
+
 
 echo "Todos los certificados han sido generados exitosamente."
