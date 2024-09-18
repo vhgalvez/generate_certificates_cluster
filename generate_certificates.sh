@@ -13,7 +13,7 @@ set -e  # Detener el script si ocurre algún error
 NODES=("master1" "master2" "master3" "worker1" "worker2" "worker3")
 MASTER_IPS=("10.17.4.21" "10.17.4.22" "10.17.4.23")
 WORKER_IPS=("10.17.4.24" "10.17.4.25" "10.17.4.26")
-ETCD_NODES=("10.17.4.21" "10.17.4.22" "10.17.4.23")
+ETCD_NODES=("10.17.4.21" "10.17.4.22" "10.17.4.23" "10.17.4.27")
 BOOTSTRAP_NODE="10.17.4.27"
 
 # Crear la estructura de directorios
