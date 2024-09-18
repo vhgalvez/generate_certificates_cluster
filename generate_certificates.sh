@@ -22,13 +22,13 @@ sudo mkdir -p ${BASE_DIR}/{shared,sa,kubelet,apiserver,etcd,apiserver-etcd-clien
 
 # Función para eliminar certificados existentes
 remove_existing_certificates() {
-  echo "Eliminando certificados existentes..."
-  sudo rm -f ${BASE_DIR}/shared/*.crt ${BASE_DIR}/kubelet/*.crt ${BASE_DIR}/apiserver/*.crt ${BASE_DIR}/etcd/*.crt ${BASE_DIR}/apiserver-etcd-client/*.crt
+    echo "Eliminando certificados existentes..."
+    sudo rm -f ${BASE_DIR}/shared/*.crt ${BASE_DIR}/kubelet/*.crt ${BASE_DIR}/apiserver/*.crt ${BASE_DIR}/etcd/*.crt ${BASE_DIR}/apiserver-etcd-client/*.crt
 }
 
 # 1. Generar el archivo de configuración de la CA (ca-config.json)
 generate_ca_config() {
-  echo "Generando archivo de configuración de CA..."
+    echo "Generando archivo de configuración de CA..."
   cat > ${BASE_DIR}/shared/ca-config.json <<EOF
 {
   "signing": {
@@ -53,7 +53,7 @@ EOF
 
 # 2. Generar certificado CA (Autoridad Certificadora)
 generate_ca_certificate() {
-  echo "Generando certificado CA..."
+    echo "Generando certificado CA..."
   cat > ${BASE_DIR}/shared/ca-csr.json <<EOF
 {
   "CN": "Kubernetes-CA",
@@ -72,13 +72,13 @@ generate_ca_certificate() {
   ]
 }
 EOF
-
-  cfssl gencert -initca ${BASE_DIR}/shared/ca-csr.json | cfssljson -bare ${BASE_DIR}/shared/ca
+    
+    cfssl gencert -initca ${BASE_DIR}/shared/ca-csr.json | cfssljson -bare ${BASE_DIR}/shared/ca
 }
 
 # 3. Generar certificado de administrador de Kubernetes
 generate_admin_certificate() {
-  echo "Generando certificado de administrador de Kubernetes..."
+    echo "Generando certificado de administrador de Kubernetes..."
   cat > ${BASE_DIR}/shared/admin-csr.json <<EOF
 {
   "CN": "kubernetes-admin",
@@ -97,8 +97,8 @@ generate_admin_certificate() {
   ]
 }
 EOF
-
-  cfssl gencert \
+    
+    cfssl gencert \
     -ca=${BASE_DIR}/shared/ca.pem \
     -ca-key=${BASE_DIR}/shared/ca-key.pem \
     -config=${BASE_DIR}/shared/ca-config.json \
@@ -108,10 +108,10 @@ EOF
 
 # 4. Generar certificados de Kubelet para todos los nodos
 generate_kubelet_certificates() {
-  for i in "${!NODES[@]}"; do
-    NODE="${NODES[$i]}"
-    NODE_IP="${MASTER_IPS[$i]:-${WORKER_IPS[$i]}}"
-    echo "Generando certificado de Kubelet para ${NODE}..."
+    for i in "${!NODES[@]}"; do
+        NODE="${NODES[$i]}"
+        NODE_IP="${MASTER_IPS[$i]:-${WORKER_IPS[$i]}}"
+        echo "Generando certificado de Kubelet para ${NODE}..."
     cat > ${BASE_DIR}/kubelet/kubelet-${NODE}-csr.json <<EOF
 {
   "CN": "system:node:${NODE}",
@@ -129,20 +129,20 @@ generate_kubelet_certificates() {
   ]
 }
 EOF
-
-    cfssl gencert \
-      -ca=${BASE_DIR}/shared/ca.pem \
-      -ca-key=${BASE_DIR}/shared/ca-key.pem \
-      -config=${BASE_DIR}/shared/ca-config.json \
-      -hostname=${NODE},${NODE_IP} \
-      -profile=kubernetes \
-      ${BASE_DIR}/kubelet/kubelet-${NODE}-csr.json | cfssljson -bare ${BASE_DIR}/kubelet/${NODE}
-  done
+        
+        cfssl gencert \
+        -ca=${BASE_DIR}/shared/ca.pem \
+        -ca-key=${BASE_DIR}/shared/ca-key.pem \
+        -config=${BASE_DIR}/shared/ca-config.json \
+        -hostname=${NODE},${NODE_IP} \
+        -profile=kubernetes \
+        ${BASE_DIR}/kubelet/kubelet-${NODE}-csr.json | cfssljson -bare ${BASE_DIR}/kubelet/${NODE}
+    done
 }
 
 # 5. Generar certificados del servidor API (kube-apiserver)
 generate_apiserver_certificate() {
-  echo "Generando certificado del servidor API..."
+    echo "Generando certificado del servidor API..."
   cat > ${BASE_DIR}/apiserver/apiserver-csr.json <<EOF
 {
   "CN": "kube-apiserver",
@@ -160,8 +160,8 @@ generate_apiserver_certificate() {
   ]
 }
 EOF
-
-  cfssl gencert \
+    
+    cfssl gencert \
     -ca=${BASE_DIR}/shared/ca.pem \
     -ca-key=${BASE_DIR}/shared/ca-key.pem \
     -config=${BASE_DIR}/shared/ca-config.json \
@@ -172,8 +172,8 @@ EOF
 
 # 6. Generar certificados de ETCD
 generate_etcd_certificates() {
-  for NODE in "${ETCD_NODES[@]}"; do
-    echo "Generando certificados de ETCD para ${NODE}..."
+    for NODE in "${ETCD_NODES[@]}"; do
+        echo "Generando certificados de ETCD para ${NODE}..."
     cat > ${BASE_DIR}/etcd/etcd-${NODE}-csr.json <<EOF
 {
   "CN": "etcd",
@@ -192,20 +192,20 @@ generate_etcd_certificates() {
   ]
 }
 EOF
-
-    cfssl gencert \
-      -ca=${BASE_DIR}/shared/ca.pem \
-      -ca-key=${BASE_DIR}/shared/ca-key.pem \
-      -config=${BASE_DIR}/shared/ca-config.json \
-      -hostname=${NODE},${BOOTSTRAP_NODE} \
-      -profile=kubernetes \
-      ${BASE_DIR}/etcd/etcd-${NODE}-csr.json | cfssljson -bare ${BASE_DIR}/etcd/etcd-${NODE}
-  done
+        
+        cfssl gencert \
+        -ca=${BASE_DIR}/shared/ca.pem \
+        -ca-key=${BASE_DIR}/shared/ca-key.pem \
+        -config=${BASE_DIR}/shared/ca-config.json \
+        -hostname=${NODE},${BOOTSTRAP_NODE} \
+        -profile=kubernetes \
+        ${BASE_DIR}/etcd/etcd-${NODE}-csr.json | cfssljson -bare ${BASE_DIR}/etcd/etcd-${NODE}
+    done
 }
 
 # 7. Generar certificados de kube-controller-manager
 generate_kube_controller_manager_certificate() {
-  echo "Generando certificado para kube-controller-manager..."
+    echo "Generando certificado para kube-controller-manager..."
   cat > ${BASE_DIR}/kube-controller-manager/kube-controller-manager-csr.json <<EOF
 {
   "CN": "system:kube-controller-manager",
@@ -223,8 +223,8 @@ generate_kube_controller_manager_certificate() {
   ]
 }
 EOF
-
-  cfssl gencert \
+    
+    cfssl gencert \
     -ca=${BASE_DIR}/shared/ca.pem \
     -ca-key=${BASE_DIR}/shared/ca-key.pem \
     -config=${BASE_DIR}/shared/ca-config.json \
@@ -234,7 +234,7 @@ EOF
 
 # 8. Generar certificados de kube-scheduler
 generate_kube_scheduler_certificate() {
-  echo "Generando certificado para kube-scheduler..."
+    echo "Generando certificado para kube-scheduler..."
   cat > ${BASE_DIR}/kube-scheduler/kube-scheduler-csr.json <<EOF
 {
   "CN": "system:kube-scheduler",
@@ -252,8 +252,8 @@ generate_kube_scheduler_certificate() {
   ]
 }
 EOF
-
-  cfssl gencert \
+    
+    cfssl gencert \
     -ca=${BASE_DIR}/shared/ca.pem \
     -ca-key=${BASE_DIR}/shared/ca-key.pem \
     -config=${BASE_DIR}/shared/ca-config.json \
@@ -263,7 +263,7 @@ EOF
 
 # 9. Generar certificados de kube-proxy
 generate_kube_proxy_certificate() {
-  echo "Generando certificado para kube-proxy..."
+    echo "Generando certificado para kube-proxy..."
   cat > ${BASE_DIR}/kube-proxy/kube-proxy-csr.json <<EOF
 {
   "CN": "system:kube-proxy",
@@ -281,8 +281,8 @@ generate_kube_proxy_certificate() {
   ]
 }
 EOF
-
-  cfssl gencert \
+    
+    cfssl gencert \
     -ca=${BASE_DIR}/shared/ca.pem \
     -ca-key=${BASE_DIR}/shared/ca-key.pem \
     -config=${BASE_DIR}/shared/ca-config.json \
@@ -292,7 +292,7 @@ EOF
 
 # 10. Generar certificados de sa.key y sa.pub (para los tokens del ServiceAccount)
 generate_service_account_certificates() {
-  echo "Generando certificados para ServiceAccount (sa)..."
+    echo "Generando certificados para ServiceAccount (sa)..."
   cat > ${BASE_DIR}/sa/sa-csr.json <<EOF
 {
   "CN": "service-accounts",
@@ -311,8 +311,8 @@ generate_service_account_certificates() {
   ]
 }
 EOF
-
-  cfssl gencert \
+    
+    cfssl gencert \
     -ca=${BASE_DIR}/shared/ca.pem \
     -ca-key=${BASE_DIR}/shared/ca-key.pem \
     -config=${BASE_DIR}/shared/ca-config.json \
@@ -322,7 +322,7 @@ EOF
 
 # 11. Generar certificados para apiserver-etcd-client
 generate_apiserver_etcd_client_certificate() {
-  echo "Generando certificado apiserver-etcd-client..."
+    echo "Generando certificado apiserver-etcd-client..."
   cat > ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client-csr.json <<EOF
 {
   "CN": "apiserver-etcd-client",
@@ -341,14 +341,44 @@ generate_apiserver_etcd_client_certificate() {
   ]
 }
 EOF
-
-  cfssl gencert \
+    
+    cfssl gencert \
     -ca=${BASE_DIR}/shared/ca.pem \
     -ca-key=${BASE_DIR}/shared/ca-key.pem \
     -config=${BASE_DIR}/shared/ca-config.json \
     -profile=kubernetes \
     ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client-csr.json | cfssljson -bare ${BASE_DIR}/apiserver-etcd-client/apiserver-etcd-client
 }
+# 12. Generar certificados para apiserver-kubelet-client
+generate_apiserver_kubelet_client_certificate() {
+    echo "Generando certificado apiserver-kubelet-client..."
+  cat > ${BASE_DIR}/apiserver/apiserver-kubelet-client-csr.json <<EOF
+{
+  "CN": "apiserver-kubelet-client",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "system:masters",
+      "OU": "Kubernetes",
+      "L": "Madrid",
+      "ST": "Madrid",
+      "C": "ES"
+    }
+  ]
+}
+EOF
+    
+    cfssl gencert \
+    -ca=${BASE_DIR}/shared/ca.pem \
+    -ca-key=${BASE_DIR}/shared/ca-key.pem \
+    -config=${BASE_DIR}/shared/ca-config.json \
+    -profile=kubernetes \
+    ${BASE_DIR}/apiserver/apiserver-kubelet-client-csr.json | cfssljson -bare ${BASE_DIR}/apiserver/apiserver-kubelet-client
+}
+
 
 # Ajustar permisos de los archivos
 sudo chmod -R 755 ${BASE_DIR}
@@ -370,5 +400,6 @@ generate_kube_scheduler_certificate
 generate_kube_proxy_certificate
 generate_service_account_certificates
 generate_apiserver_etcd_client_certificate
+generate_apiserver_kubelet_client_certificate
 
 echo "Todos los certificados han sido generados exitosamente."
