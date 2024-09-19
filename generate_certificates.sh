@@ -455,6 +455,10 @@ sudo chown core:core /home/core/nginx-docker/certificates/etcd/*.pem
 
 sudo chmod 644 /home/core/nginx-docker/certificates/sa/sa-key.pem
 sudo chmod 644 /home/core/nginx-docker/certificates/sa/sa.pem
+sudo find /home/core/nginx-docker/certificates/ -type d -exec chmod 755 {} \;
+sudo chmod -R 644 /home/core/nginx-docker/certificates/*
+sudo chown -R root:root /home/core/nginx-docker/certificates/*
+
 
 
 echo "Permisos ajustados correctamente."
