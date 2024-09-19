@@ -453,6 +453,9 @@ sudo chown -R root:root /home/core/nginx-docker/certificates
 # Asegurarse de que el usuario core sea el propietario de los archivos en etcd
 sudo chown core:core /home/core/nginx-docker/certificates/etcd/*.pem
 
+sudo chmod 644 /home/core/nginx-docker/certificates/sa/sa-key.pem
+sudo chmod 644 /home/core/nginx-docker/certificates/sa/sa.pem
+
 
 echo "Permisos ajustados correctamente."
 
