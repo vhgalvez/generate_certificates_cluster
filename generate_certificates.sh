@@ -459,7 +459,18 @@ sudo find /home/core/nginx-docker/certificates/ -type d -exec chmod 755 {} \;
 sudo chmod -R 644 /home/core/nginx-docker/certificates/*
 sudo chown -R root:root /home/core/nginx-docker/certificates/*
 
+# Asigna permisos de lectura a todos los archivos dentro del directorio certificates
+sudo find /home/core/nginx-docker/certificates/ -type f -exec chmod 644 {} \;
 
+# Asigna permisos de ejecución (lectura de directorio) a todos los directorios
+sudo find /home/core/nginx-docker/certificates/ -type d -exec chmod 755 {} \;
+
+# Cambia el propietario de todos los archivos y directorios a 'root'
+sudo chown -R root:root /home/core/nginx-docker/certificates/
+
+sudo chmod 755 /home
+sudo chmod 755 /home/core
+sudo chmod 755 /home/core/nginx-docker
 
 echo "Permisos ajustados correctamente."
 
