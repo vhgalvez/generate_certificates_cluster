@@ -438,12 +438,21 @@ sudo find ${BASE_DIR}/ -name "*.pem" -exec chmod 644 {} \;
 sudo find ${BASE_DIR}/ -name "*-key.pem" -exec chmod 600 {} \;
 sudo chown -R root:root ${BASE_DIR}
 
-sudo chmod 755 /home/core/nginx-docker/certificates
-sudo chmod 755 /home/core/nginx-docker/certificates/etcd
-sudo chmod 644 /home/core/nginx-docker/certificates/etcd/*.pem
+
+# Ajustar permisos de directorios
+sudo chmod -R 755 /home/core/nginx-docker/certificates
+
+# Ajustar permisos para todos los archivos .pem
+sudo find /home/core/nginx-docker/certificates -name "*.pem" -exec chmod 644 {} \;
+
+# Ajustar permisos para todas las claves privadas (-key.pem)
+sudo find /home/core/nginx-docker/certificates -name "*-key.pem" -exec chmod 600 {} \;
+
+# Establecer el propietario como root para todos los archivos y directorios
+sudo chown -R root:root /home/core/nginx-docker/certificates
+
+# Asegurarse de que el usuario core sea el propietario de los archivos en etcd
 sudo chown core:core /home/core/nginx-docker/certificates/etcd/*.pem
-sudo chmod 600 /home/core/nginx-docker/certificates/**/*.pem
-sudo find /home/core/nginx-docker/certificates -name "*.key" -exec chmod 644 {} \
 
 
 echo "Permisos ajustados correctamente."
