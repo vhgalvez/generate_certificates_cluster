@@ -104,11 +104,6 @@ EOF
     -config=${BASE_DIR}/shared/ca-config.json \
     -profile=kubernetes \
     ${BASE_DIR}/shared/admin-csr.json | cfssljson -bare ${BASE_DIR}/shared/admin
-
-    # Mover certificados a /etc/kubernetes/pki
-    echo "Moviendo certificados de administrador a /etc/kubernetes/pki..."
-    sudo mv ${BASE_DIR}/shared/admin.pem /etc/kubernetes/pki/
-    sudo mv ${BASE_DIR}/shared/admin-key.pem /etc/kubernetes/pki/
 }
 
 # 4. Generar certificados de Kubelet para todos los nodos
@@ -430,7 +425,6 @@ generate_apiserver_etcd_client_certificate
 generate_apiserver_kubelet_client_certificate
 generate_kubelet_bootstrap_certificate
 
-
 echo "Todos los certificados han sido generados exitosamente."
 
 # Ajustar permisos de los archivos
@@ -475,4 +469,3 @@ sudo chmod 755 /home/core
 sudo chmod 755 /home/core/nginx-docker
 
 echo "Permisos ajustados correctamente."
-
