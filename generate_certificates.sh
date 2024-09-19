@@ -442,10 +442,11 @@ sudo chmod 755 /home/core/nginx-docker/certificates
 sudo chmod 755 /home/core/nginx-docker/certificates/etcd
 sudo chmod 644 /home/core/nginx-docker/certificates/etcd/*.pem
 sudo chown core:core /home/core/nginx-docker/certificates/etcd/*.pem
+sudo chmod 600 /home/core/nginx-docker/certificates/**/*.pem
+
 
 echo "Permisos ajustados correctamente."
 
 
-~
 # sudo openssl genpkey -algorithm RSA -out /etc/kubernetes/pki/sa.key -pkeyopt rsa_keygen_bits:4096
 # sudo openssl rsa -pubout -in /etc/kubernetes/pki/sa.key -out /etc/kubernetes/pki/sa.pub
