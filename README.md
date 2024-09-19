@@ -1,5 +1,15 @@
 # Generate Certificates for Kubernetes Cluster
 
+
+1. Verifica si cfssl está instalado:
+Si no tienes cfssl y cfssljson instalados, sigue los siguientes pasos:
+
+bash
+Copiar código
+sudo curl -L -o /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+sudo curl -L -o /usr/local/bin/cfssljson https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+sudo chmod +x /usr/local/bin/cfssl /usr/local/bin/cfssljson
+
 This repository contains scripts to automate the generation of certificates for a Kubernetes cluster, including the control plane (API server, etcd, and kube-controller-manager) and worker nodes.
 
 ## Overview
