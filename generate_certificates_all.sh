@@ -110,9 +110,13 @@ EOF
 generate_kubelet_certificates() {
     for i in "${!NODES[@]}"; do
         NODE="${NODES[$i]}"
-        NODE_IP="${MASTER_IPS[$i]:-${WORKER_IPS[$i]}}"
-        echo "Generando certificado de Kubelet para ${NODE}..."
-    cat > ${BASE_DIR}/kubelet/kubelet-${NODE}-csr.json <<EOF
+        if [ $i -lt 3 ]; then
+            NODE_IP="${MASTER_IPS[$i]}"
+        else
+            NODE_IP="${WORKER_IPS[$i-3]}"
+        fi
+        echo "Generando certificado de Kubelet para ${NODE} con IP ${NODE_IP}..."
+        cat > ${BASE_DIR}/kubelet/kubelet-${NODE}-csr.json <<EOF
 {
   "CN": "system:node:${NODE}",
   "key": {
@@ -129,7 +133,7 @@ generate_kubelet_certificates() {
   ]
 }
 EOF
-        
+
         cfssl gencert \
         -ca=${BASE_DIR}/shared/ca.pem \
         -ca-key=${BASE_DIR}/shared/ca-key.pem \
@@ -165,7 +169,7 @@ EOF
     -ca=${BASE_DIR}/shared/ca.pem \
     -ca-key=${BASE_DIR}/shared/ca-key.pem \
     -config=${BASE_DIR}/shared/ca-config.json \
-    -hostname=127.0.0.1,${MASTER_IPS[0]},${MASTER_IPS[1]},${MASTER_IPS[2]},${BOOTSTRAP_NODE} \
+    -hostname=127.0.0.1,${MASTER_IPS[0]},${MASTER_IPS[1]},${MASTER_IPS[2]},${BOOTSTRAP_NODE},10.96.0.1,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local \
     -profile=kubernetes \
     ${BASE_DIR}/apiserver/apiserver-csr.json | cfssljson -bare ${BASE_DIR}/apiserver/apiserver
 }
@@ -174,7 +178,7 @@ EOF
 generate_etcd_certificates() {
     for NODE in "${ETCD_NODES[@]}"; do
         echo "Generando certificados de ETCD para ${NODE}..."
-    cat > ${BASE_DIR}/etcd/etcd-${NODE}-csr.json <<EOF
+        cat > ${BASE_DIR}/etcd/etcd-${NODE}-csr.json <<EOF
 {
   "CN": "etcd",
   "key": {
