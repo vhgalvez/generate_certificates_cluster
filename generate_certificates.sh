@@ -410,7 +410,6 @@ EOF
     ${BASE_DIR}/kubelet/kubelet-bootstrap-csr.json | cfssljson -bare ${BASE_DIR}/kubelet/kubelet-bootstrap
 }
 
-
 # Llamar a todas las funciones
 remove_existing_certificates
 generate_ca_config
