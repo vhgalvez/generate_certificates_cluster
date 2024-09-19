@@ -443,6 +443,7 @@ sudo chmod 755 /home/core/nginx-docker/certificates/etcd
 sudo chmod 644 /home/core/nginx-docker/certificates/etcd/*.pem
 sudo chown core:core /home/core/nginx-docker/certificates/etcd/*.pem
 sudo chmod 600 /home/core/nginx-docker/certificates/**/*.pem
+sudo find /home/core/nginx-docker/certificates -name "*.key" -exec chmod 644 {} \
 
 
 echo "Permisos ajustados correctamente."
